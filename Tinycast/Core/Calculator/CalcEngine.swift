@@ -140,7 +140,7 @@ enum CalcEngine {
 
         guard let value = CalcParser.evaluate(tokens) else { return nil }
         return CalcResult(
-            expression: prettyExpression(query),
+            expression: collapsedWhitespace(query),
             sourceBadge: "Expression",
             targetBadge: "Result",
             payload: .value(
@@ -206,10 +206,8 @@ enum CalcEngine {
         }
     }
 
-    /// Light cleanup of the typed expression for the card: collapse whitespace and use pretty operator glyphs, otherwise keep what the user wrote.
-    private static func prettyExpression(_ query: String) -> String {
-        query.split(whereSeparator: \.isWhitespace).joined(separator: " ")
-            .replacingOccurrences(of: "*", with: "×")
-            .replacingOccurrences(of: "/", with: "÷")
+    /// Light cleanup of the typed expression for the card: collapse whitespace, otherwise echo verbatim what the user wrote.
+    private static func collapsedWhitespace(_ query: String) -> String {
+       query.split(whereSeparator: \.isWhitespace).joined(separator: " ")
     }
 }
