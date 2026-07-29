@@ -115,6 +115,13 @@ enum CalcUnits {
         }
     }
 
+    /// The literal, slash-written spelling of every compound unit symbol (`"km/h"`, `"m/s"`,
+    /// `"ft/s"` — the only three `/`-containing entries in `byName`) mapped to the slash-free ident
+    /// `byName` already resolves. `/` tokenizes as division, so without this the tokenizer would
+    /// split e.g. `km/h` into `km`, `/`, `h` — the exact symbol the app prints on the card would be
+    /// unreadable as input. Consulted by `CalcTokenizer` before it treats a `/` as an operator.
+    static let slashSymbolAliases: [String: String] = ["km/h": "kmh", "m/s": "mps", "ft/s": "fps"]
+
     /// Keyword-less counterpart per unit (metric↔imperial where it applies): source `symbol` → target `byName` key + whether to render feet+inches. Only `m→ft` is compound.
     static let autoTargets: [String: (to: String, compound: Bool)] = [
         // Length

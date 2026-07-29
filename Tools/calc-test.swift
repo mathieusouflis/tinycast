@@ -197,6 +197,17 @@ struct CalcTests {
         expectDisplay("100 mbps to kbps", "100,000 Kbps")
         expectBadges("100 kmh to mph", source: "Kilometers per Hour", target: "Miles per Hour")
 
+        // Slash-written compound unit symbols — the app prints "km/h"/"m/s"/"ft/s" on the card, so
+        // typing them back must resolve too, not split on "/" as division.
+        expectDisplay("100 km/h to mph", "62.13711922 mph")
+        expectDisplay("10 m/s to mph", "22.36936292 mph")
+        expectDisplay("30 ft/s to mph", "20.45454545 mph")
+        expectDisplay("km/h to mph", "0.6213711922 mph")  // implied quantity of 1
+        expectBadges("100 km/h to mph", source: "Kilometers per Hour", target: "Miles per Hour")
+        // A "/" that isn't one of the three known compound symbols stays plain division / unresolved
+        expectDisplay("10/2", "5")
+        expectNil("5 km/s")  // not a unit this app defines, whitelisted or not
+
         // Percentage phrasings
         expectDisplay("20% off 500", "400")
         expectDisplay("50 as % of 200", "25%")

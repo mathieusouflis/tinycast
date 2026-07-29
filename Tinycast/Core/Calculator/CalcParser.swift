@@ -77,6 +77,25 @@ enum CalcTokenizer {
                     }
                     i += 1
                 }
+
+                // A literal slash-written unit symbol ("km/h", "m/s", "ft/s") — "/" is otherwise a
+                // division operator, so without this check it would split the symbol the app itself
+                // prints on the card into three tokens the parser can't reassemble.
+                if i < chars.count, chars[i] == "/", i + 1 < chars.count, chars[i + 1].isLetter {
+                    var lookahead = i + 1
+                    var secondRun = ""
+                    while lookahead < chars.count, chars[lookahead].isLetter {
+                        secondRun.append(chars[lookahead])
+                        lookahead += 1
+                    }
+                    let combined = "\(text)/\(secondRun)".lowercased()
+                    if let alias = CalcUnits.slashSymbolAliases[combined] {
+                        tokens.append(.ident(alias))
+                        i = lookahead
+                        continue
+                    }
+                }
+
                 tokens.append(.ident(text.lowercased()))
                 continue
             }
