@@ -180,23 +180,38 @@ private struct Parser {
     }
 
     private func apply(_ op: Character, _ lhs: Value, _ rhs: Value) -> Value? {
-        let result: Double
         switch op {
         // `450 + 20%` reads as a relative change: 450 * 1.2. With a plain rhs it's ordinary math.
         case "+":
-            result =
+            let result =
                 rhs.isPercent
                 ? lhs.effective * (1 + rhs.value / 100) : lhs.effective + rhs.effective
+            return Value(value: result)
         case "-":
-            result =
+            let result =
                 rhs.isPercent
                 ? lhs.effective * (1 - rhs.value / 100) : lhs.effective - rhs.effective
-        case "*": result = lhs.effective * rhs.effective
-        case "/": result = lhs.effective / rhs.effective
-        case "^": result = pow(lhs.effective, rhs.effective)
-        default: return nil
+            return Value(value: result)
+        // Scaling a percent by a plain number ("20% * 2", "20% / 2") keeps it a percent, so a later
+        // "+"/"-" still reads it as a relative change: `450 + 20% * 2` is 450 + 40%, not 450 + 0.4.
+        // Only "exactly one side is a percent" is well-defined this way; two percents multiplied or
+        // divided fall back to plain arithmetic on their fractions, same as today.
+        case "*":
+            if lhs.isPercent != rhs.isPercent {
+                let (percentSide, otherSide) = lhs.isPercent ? (lhs, rhs) : (rhs, lhs)
+                return Value(value: percentSide.value * otherSide.effective, isPercent: true)
+            }
+            return Value(value: lhs.effective * rhs.effective)
+        case "/":
+            if lhs.isPercent, !rhs.isPercent {
+                return Value(value: lhs.value / rhs.effective, isPercent: true)
+            }
+            return Value(value: lhs.effective / rhs.effective)
+        case "^":
+            return Value(value: pow(lhs.effective, rhs.effective))
+        default:
+            return nil
         }
-        return Value(value: result)
     }
 
     /// One prefix item plus all its postfixes (`!`, `%`, `deg`) — postfixes bind tightest.
@@ -232,6 +247,11 @@ private struct Parser {
         case .op("-"):
             pos += 1
             guard let operand = parseExpression(minBP: Self.unaryBP) else { return nil }
+            // Negating a percent stays a percent ("-20%" reads as a -20% relative change), so
+            // "450 + -20%" matches "450 - 20%" instead of subtracting the fraction 0.2 outright.
+            if operand.isPercent {
+                return Value(value: -operand.value, isPercent: true)
+            }
             return Value(value: -operand.effective)
         case .op("+"):
             pos += 1

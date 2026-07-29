@@ -51,6 +51,14 @@ struct CalcTests {
         expectDisplay("450 + 20%", "540")
         expectDisplay("450 - 15%", "382.5")
         expectDisplay("20%", "0.2")
+        // A percent stays a percent through "*"/"/" and unary minus, so a later "+"/"-" still
+        // reads it as a relative change, not the plain fraction.
+        expectDisplay("450 + 20% * 2", "630")  // 20%*2 = 40%, so 450 + 40%
+        expectDisplay("450 + 20% / 2", "495")  // 20%/2 = 10%, so 450 + 10%
+        expectDisplay("450 + (20% * 2)", "630")  // parens don't change the result
+        expectDisplay("450 + -20%", "360")  // matches "450 - 20%"
+        expectDisplay("450 - 20%", "360")
+        expectDisplay("450 + (20%)", "540")  // parens alone already preserved this
 
         // Unit conversion — length / weight / temperature / time / area / volume / storage
         expectDisplay("10km to mi", "6.213711922 mi")
