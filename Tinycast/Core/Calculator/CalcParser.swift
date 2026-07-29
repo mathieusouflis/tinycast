@@ -47,8 +47,10 @@ enum CalcTokenizer {
                     let c = chars[i]
                     if isDigit(c) {
                         text.append(c)
-                    } else if c == "," && i + 1 < chars.count && isDigit(chars[i + 1]) {
-                        // grouping separator between digits — skip
+                    } else if c == "," && !seenDot && i + 1 < chars.count && isDigit(chars[i + 1]) {
+                        // Possible grouping separator — kept in `text` so isValidGrouping can check
+                        // the group sizes below; stripped before parsing the numeric value.
+                        text.append(c)
                     } else if c == "." && !seenDot {
                         seenDot = true
                         text.append(c)
@@ -57,7 +59,10 @@ enum CalcTokenizer {
                     }
                     i += 1
                 }
-                guard let value = Double(text) else { return nil }
+                guard isValidGrouping(text) else { return nil }
+                guard let value = Double(text.replacingOccurrences(of: ",", with: "")) else {
+                    return nil
+                }
                 tokens.append(.number(value))
                 continue
             }
@@ -115,6 +120,21 @@ enum CalcTokenizer {
             i += 1
         }
         return tokens
+    }
+
+    /// A `,` is only a real thousands separator if it splits the integer part into groups of
+    /// exactly 3 digits, except the leftmost (1–3 digits) — "1,000" and "1,234,567" qualify;
+    /// "2,5" and "1,2,3,4" don't, and must fall through to no-card rather than silently guessing
+    /// at a value (a European decimal comma, or unparseable garbage). `text` never has a comma in
+    /// the fractional part — the caller only appends one before the decimal point is seen.
+    private static func isValidGrouping(_ text: String) -> Bool {
+        let integerPart = text.split(separator: ".", maxSplits: 1, omittingEmptySubsequences: false)[0]
+        guard integerPart.contains(",") else { return true }
+        let groups = integerPart.split(separator: ",", omittingEmptySubsequences: false)
+        guard groups.count >= 2, let first = groups.first, (1...3).contains(first.count) else {
+            return false
+        }
+        return groups.dropFirst().allSatisfy { $0.count == 3 }
     }
 }
 

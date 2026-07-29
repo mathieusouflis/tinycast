@@ -24,6 +24,14 @@ struct CalcTests {
         expectDisplay("1/3", "0.3333333333")
         expectDisplay("2.5 * 4", "10")
         expectDisplay("1,000 + 234", "1,234")  // grouping commas accepted in input
+        expectDisplay("1,234,567 + 1", "1,234,568")  // multiple valid groups
+        expectDisplay("1,234.5 + 1", "1,235.5")  // grouping + a decimal tail
+        // Malformed grouping is rejected outright, not silently reinterpreted (e.g. as a decimal comma)
+        expectNil("2,5 * 2")
+        expectNil("1,00 + 1")
+        expectNil("0,5 + 0,5")
+        expectNil("1,2,3,4 + 1")
+        expectNil("1234,567")  // first group must be ≤3 digits too
 
         // Functions
         expectDisplay("sqrt(64)", "8")
